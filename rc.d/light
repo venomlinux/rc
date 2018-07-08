@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# /etc/rc.d/light: start/stop light
+#
+
+NAME="Brightness"
+PROG=/usr/bin/light
+
+case $1 in
+	start)
+		echo "Restoringg $NAME..."
+		$PROG -I
+		;;
+	stop)
+		echo "Saving $NAME..."
+		$PROG -O
+		;;
+	restart)
+		$0 stop
+		$0 start
+		;;
+	*)
+		echo "usage: $0 [start|stop|restart]"
+		;;
+esac
+
+exit 0
+
+# End of file

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+FILE="sysinit multi single local shutdown conf d"
+
+for i in $FILE; do
+	rsync -av /etc/rc.$i .
+done
+
+rsync -av /etc/inittab .
+rsync -av /etc/conf.d .

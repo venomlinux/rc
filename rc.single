@@ -1,0 +1,53 @@
+#!/bin/sh
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+msg() {
+    echo -e "\e[0;32m*\e[0m $@"
+}
+
+[ -r /etc/rc.conf ] && . /etc/rc.conf
+
+if [ "$PREVLEVEL" = "2" ]; then
+	if [ "${#DAEMONS[@]}" -gt 0 ]; then
+		for daemon in ${DAEMONS[@]}; do
+			R_DAEMONS=($daemon ${R_DAEMONS[@]})
+		done
+		for daemon in ${R_DAEMONS[@]}; do
+			if [ -f /etc/rc.d/$daemon ] && [ -x /etc/rc.d/$daemon ]; then
+				/etc/rc.d/$daemon stop
+			fi
+		done
+	fi
+fi
+
+if [ "$PREVLEVEL" != "N" ]; then
+	msg "Sending all processes the TERM signal..."
+	killall5 -15
+	sleep 5
+
+	msg "Sending all processes the KILL signal..."
+	killall5 -9
+	sleep 1
+
+	msg "Mounting virtual file systems..."
+	mountpoint -q /run  || mount /run
+	mountpoint -q /proc || mount -o nosuid,noexec,nodev /proc
+	mountpoint -q /sys  || mount -o nosuid,noexec,nodev /sys
+	mountpoint -q /dev  || mount -o mode=0755,nosuid /dev
+	mkdir -p /run/lock /run/shm /dev/pts
+	chmod 1777 /run/shm /run/lock
+	ln -sfn /run/shm /dev/shm
+
+	msg "Populating /dev with device nodes..."
+	udevd --daemon
+	udevadm trigger --action=add    --type=subsystems
+	udevadm trigger --action=add    --type=devices
+	udevadm trigger --action=change --type=devices
+	udevadm settle
+fi
+
+if [ "$RUNLEVEL" = "1" ]; then
+	# Enter single-user mode
+	exec init -t1 S
+fi

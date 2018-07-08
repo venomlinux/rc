@@ -1,0 +1,73 @@
+#!/bin/bash
+
+. /etc/rc.conf
+
+RCD="/etc/rc.d"
+
+needroot() {
+	if [ "$UID" != 0 ]; then
+		echo "$@ need root access."
+		exit 1
+	fi
+}
+
+dlist() {
+	for f in $(ls $RCD); do
+		[ -x "$RCD/$f" ] || continue
+		if [ $(echo ${DAEMONS[@]} | tr ' ' '\n' | grep -x "$f") ]; then
+			echo "[X] $f"
+		else
+			echo "[ ] $f"
+		fi
+	done
+}
+
+dcheck() {
+	shift
+	
+	for i in $@; do
+		if [ ! -x "$RCD/$i" ]; then
+			echo "Invalid daemon! ($i)"
+			err=1
+		fi
+	done
+	
+	[ "$err" = 1 ] && exit 1
+}
+
+help() {
+	cat << EOF
+Usage:
+    rc <option> <daemon>
+
+Options:
+    list               List available daemons
+    start  <daemons>   Start daemons
+    stop   <daemons>   Stop daemons
+    status <daemons>   Show daemon status
+    
+EOF
+}
+
+case "$1" in
+	list)
+		dlist ;;
+	start|stop)
+		needroot "This operation"
+		[ -z "$2" ] && exit 1
+		dcheck $@
+		while [ "$2" ]; do
+			"$RCD/$2" $1
+			shift
+		done ;;
+	status)
+		[ -z "$2" ] && exit 1
+		dcheck $@
+		while [ "$2" ]; do
+			"$RCD/$2" status
+			shift
+		done ;;
+	*) help; exit 1 ;;
+esac
+
+exit 0

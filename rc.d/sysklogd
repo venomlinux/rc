@@ -1,0 +1,66 @@
+#!/bin/sh
+#
+# /etc/rc.d/rc.sysklogd
+#
+
+PROG=/sbin/syslogd
+PROGK=/sbin/klogd
+PROCPID=$(pidof $PROG)
+PROCPIDK=$(pidof $PROGK)
+
+case "${1}" in
+	start)
+		echo "Starting system log daemon..."
+		if [ -z "$PROCPID" ]; then
+			parms=${SYSKLOGD_PARMS-'-m 0'}
+			$PROG $parms
+		fi
+
+		echo "Starting kernel log daemon..."
+		if [ -z "$PROCPIDK" ]; then
+			$PROGK
+		fi
+		;;
+	stop)
+		echo "Stopping kernel log daemon..."
+		if [ "$PROCPIDK" ]; then
+			for pidk in $PROCPIDK; do
+				kill "$pidk"
+			done
+		fi
+		echo "Stopping system log daemon..."
+		if [ "$PROCPID" ]; then
+			for pid in $PROCPID; do
+				kill "$pid"
+			done
+		fi
+		;;
+	reload)
+		echo "Reloading system log daemon config file..."
+		pid=`pidof syslogd`
+		kill -HUP "${pid}"
+		;;
+	restart)
+		${0} stop
+		sleep 1
+		${0} start
+		;;
+	status)
+		if [ "$PROCPID" ]; then
+			echo "System log daemon is running with pid: $PROCPID"
+		else
+			echo "System log daemon is not running."
+		fi
+		if [ "$PROCPIDK" ]; then
+			echo "Kernel log daemon is running with pid: $PROCPIDK"
+		else
+			echo "Kernel log daemon is not running."
+		fi
+		;;
+	*)
+		echo "Usage: ${0} {start|stop|reload|restart|status}"
+		exit 1
+		;;
+esac
+
+# End of file

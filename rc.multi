@@ -1,0 +1,22 @@
+#!/bin/sh
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+msg() {
+    echo -e "\e[0;32m*\e[0m $@"
+}
+
+[ -r /etc/rc.conf ] && . /etc/rc.conf
+
+if [ "${#DAEMONS[@]}" -gt 0 ]; then
+	for daemon in ${DAEMONS[@]}; do
+		if [ -f /etc/rc.d/$daemon ] && [ -x /etc/rc.d/$daemon ]; then
+			/etc/rc.d/$daemon start
+		fi
+	done
+fi
+
+# Start rc.local script
+if [ -x /etc/rc.local ]; then
+	/etc/rc.local
+fi

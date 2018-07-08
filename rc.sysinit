@@ -1,0 +1,124 @@
+#!/bin/sh
+#
+# /etc/rc.sysinit: System Initialization Script
+#
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+msg() {
+    echo -e "\e[0;32m*\e[0m $@"
+}
+
+welcome() {
+	echo
+	echo -e "Welcome to \e[0;32m$1\e[0m!"
+	echo
+}
+
+[ -r /etc/rc.conf ] && . /etc/rc.conf
+
+welcome "Nyx GNU/Linux"
+
+msg "Mounting virtual file systems..."
+mountpoint -q /run  || mount /run
+mountpoint -q /proc || mount -o nosuid,noexec,nodev /proc
+mountpoint -q /sys  || mount -o nosuid,noexec,nodev /sys
+mountpoint -q /dev  || mount -o mode=0755,nosuid /dev
+mkdir -p /run/lock /run/shm /dev/pts
+chmod 1777 /run/shm /run/lock
+ln -sfn /run/shm /dev/shm
+
+msg "Updating module dependency list..."
+if [ -e "/lib/modules/$(uname -r)/modules.dep" ]; then
+	depmod --quick
+else
+	depmod --all
+fi
+
+if [ ${#MODULES[@]} -gt 0 ]; then
+	msg "Loading kernel modules..."
+	for module in ${MODULES[@]}; do
+		modprobe $module
+	done
+fi
+
+msg "Bringing up the loopback interface..."
+ip addr add 127.0.0.1/8 label lo dev lo
+ip link set lo up
+
+msg "Setting hostname..."
+if [ -f /etc/hostname ]; then
+	HOSTNAME=$(cat /etc/hostname)
+else
+	HOSTNAME=localhost
+fi
+hostname "$HOSTNAME"
+
+msg "Populating /dev with device nodes..."
+udevd --daemon
+udevadm trigger --action=add    --type=subsystems
+udevadm trigger --action=add    --type=devices
+udevadm trigger --action=change --type=devices
+udevadm settle
+if [ -x /sbin/vgchange ]; then /sbin/vgchange -a y >/dev/null; fi
+
+msg "Activating all swap files/partitions..."
+swapon -a
+
+msg "Mounting root file system in read-only mode..."
+mount -n -o remount,ro / >/dev/null
+
+if [ ! -f /fastboot ]; then
+	[ -f /forcefsck ] && OPT="-f"
+	msg "Checking root filesystem..."
+	fsck ${OPT} -a -A -C -T >/dev/null
+	if [ "$?" -gt 1 ]; then
+		echo "*******************************"
+		echo "*** Filesystem check failed ***"
+		echo "** You been dropped to shell **"
+		echo "*******************************"
+		/bin/sh
+	fi
+fi
+
+msg "Mounting root file system in read-write mode..."
+mount --options remount,rw / >/dev/null
+
+msg "Mounting remaining file systems..."
+mount --all --test-opts no_netdev >/dev/null
+
+msg "Cleanup system..."
+> /var/run/utmp
+if grep -q '^utmp:' /etc/group ; then
+	chmod 664 /var/run/utmp
+	chgrp utmp /var/run/utmp
+fi
+rm -f /fastboot /forcefsck
+(cd /var/run && find . -name "*.pid" -delete)
+(cd /tmp &&
+find . -xdev -mindepth 1 ! -name lost+found -delete
+mkdir -m 1777 /tmp/.ICE-unix
+mkdir -m 1777 /tmp/.X11-unix)
+
+if [ -n "$FONT" ] || [ -n "$KEYMAP" ]; then
+	msg "Setting up Linux console..."
+	[ -z "$FONT" ]   || setfont $FONT
+	[ -z "$KEYMAP" ] || loadkeys -q $KEYMAP
+fi
+
+if [ -f "/etc/sysctl.conf" ]; then
+	msg "Setting kernel runtime parameters..."
+	sysctl -q -p
+fi
+
+msg "Setting up system time..."
+hwclock --hctosys $CLOCKPARAMS
+
+msg "Updating shared library links..."
+ldconfig
+
+if [ -f "/var/lib/random-seed" ]; then
+	msg "Initializing random number generator..."
+	cat /var/lib/random-seed >/dev/urandom
+	rm -f /var/lib/random-seed
+fi
