@@ -3,7 +3,7 @@ BINDIR	= /usr/bin
 EXTDIR	= ${DESTDIR}${ETCDIR}
 EBINDIR	= ${DESTDIR}${BINDIR}
 
-RCFILES	= rc.sysinit rc.local rc.single rc.multi rc.shutdown
+RCFILES	= rc.sysinit rc.local rc.single rc.multi rc.shutdown rc.subr
 
 create-dirs:
 	install -d -m 755 ${EXTDIR}/rc.d/ ${EXTDIR}/conf.d/

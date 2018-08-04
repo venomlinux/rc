@@ -1,12 +1,7 @@
 #!/bin/sh
 
-PATH=/bin:/usr/bin:/sbin:/usr/sbin
-
-msg() {
-    echo -e "\e[0;32m*\e[0m $@"
-}
-
-[ -r /etc/rc.conf ] && . /etc/rc.conf
+. /etc/rc.conf
+. /etc/rc.subr
 
 if [ "$PREVLEVEL" = "2" ]; then
 	if [ "${#DAEMONS[@]}" -gt 0 ]; then
@@ -24,11 +19,23 @@ fi
 if [ "$PREVLEVEL" != "N" ]; then
 	msg "Sending all processes the TERM signal..."
 	killall5 -15
+	err_val=$?
 	sleep 5
+	if [ "$err_val" = "0" ] || [ "$err_val" = "2" ]; then
+		stat_ok
+	else
+		stat_fail
+	fi
 
 	msg "Sending all processes the KILL signal..."
 	killall5 -9
+	err_val=$?
 	sleep 1
+	if [ "$err_val" = "0" ] || [ "$err_val" = "2" ]; then
+		stat_ok
+	else
+		stat_fail
+	fi
 
 	msg "Mounting virtual file systems..."
 	mountpoint -q /run  || mount /run
@@ -38,13 +45,15 @@ if [ "$PREVLEVEL" != "N" ]; then
 	mkdir -p /run/lock /run/shm /dev/pts
 	chmod 1777 /run/shm /run/lock
 	ln -sfn /run/shm /dev/shm
+	eval_stat
 
-	msg "Populating /dev with device nodes..."
+	msg "Starting udev and waiting for devices to settle..."
 	udevd --daemon
 	udevadm trigger --action=add    --type=subsystems
 	udevadm trigger --action=add    --type=devices
 	udevadm trigger --action=change --type=devices
 	udevadm settle
+	eval_stat
 fi
 
 if [ "$RUNLEVEL" = "1" ]; then

@@ -3,21 +3,20 @@
 # /etc/rc.sysinit: System Initialization Script
 #
 
-PATH=/bin:/usr/bin:/sbin:/usr/sbin
-
-msg() {
-    echo -e "\e[0;32m*\e[0m $@"
-}
-
 welcome() {
 	echo
 	echo -e "Welcome to \e[0;32m$1\e[0m!"
 	echo
 }
 
-[ -r /etc/rc.conf ] && . /etc/rc.conf
+. /etc/rc.conf
+. /etc/rc.subr
 
-welcome "Nyx GNU/Linux"
+[ -r /etc/lsb-release ] && . /etc/lsb-release
+
+DISTRO_NAME=${DISTRIB_DESCRIPTION:-'GNU/Linux'}
+
+welcome "$DISTRO_NAME"
 
 msg "Mounting virtual file systems..."
 mountpoint -q /run  || mount /run
@@ -27,6 +26,7 @@ mountpoint -q /dev  || mount -o mode=0755,nosuid /dev
 mkdir -p /run/lock /run/shm /dev/pts
 chmod 1777 /run/shm /run/lock
 ln -sfn /run/shm /dev/shm
+eval_stat
 
 msg "Updating module dependency list..."
 if [ -e "/lib/modules/$(uname -r)/modules.dep" ]; then
@@ -34,58 +34,88 @@ if [ -e "/lib/modules/$(uname -r)/modules.dep" ]; then
 else
 	depmod --all
 fi
+eval_stat
+
+msg "Load static kernel modules..."
+for f in $(kmod static-nodes 2>/dev/null|awk '/Module/ {print $2}'); do
+	modprobe -bq $f 2>/dev/null
+done
+eval_stat
 
 if [ ${#MODULES[@]} -gt 0 ]; then
-	msg "Loading kernel modules..."
+	msg "Loading kernel modules:"
 	for module in ${MODULES[@]}; do
-		modprobe $module
+		echo -n " $module"
+		modprobe $module &>/dev/null
 	done
+	eval_stat
 fi
 
 msg "Bringing up the loopback interface..."
 ip addr add 127.0.0.1/8 label lo dev lo
 ip link set lo up
+eval_stat
 
-msg "Setting hostname..."
 if [ -f /etc/hostname ]; then
 	HOSTNAME=$(cat /etc/hostname)
 else
 	HOSTNAME=localhost
 fi
+msg "Setting hostname ($HOSTNAME)..."
 hostname "$HOSTNAME"
+eval_stat
 
-msg "Populating /dev with device nodes..."
+msg "Starting udev and waiting for devices to settle..."
 udevd --daemon
 udevadm trigger --action=add    --type=subsystems
 udevadm trigger --action=add    --type=devices
 udevadm trigger --action=change --type=devices
 udevadm settle
-if [ -x /sbin/vgchange ]; then /sbin/vgchange -a y >/dev/null; fi
+eval_stat
+
+if [ -x /sbin/vgchange ]; then
+	msg "Activating LVM devices..."
+	/sbin/vgchange -a y >/dev/null
+	eval_stat
+fi
 
 msg "Activating all swap files/partitions..."
 swapon -a
+eval_stat
 
 msg "Mounting root file system in read-only mode..."
 mount -n -o remount,ro / >/dev/null
+eval_stat
 
-if [ ! -f /fastboot ]; then
-	[ -f /forcefsck ] && OPT="-f"
+[ -f /fastboot ] && FASTBOOT=1
+[ -f /forcefsck ] && FORCEFSCK="-f"
+for arg in $(cat /proc/cmdline); do
+    case $arg in
+        fastboot) FASTBOOT=1;;
+        forcefsck) FORCEFSCK="-f";;
+    esac
+done
+
+if [ -z "$FASTBOOT" ]; then
 	msg "Checking root filesystem..."
-	fsck ${OPT} -a -A -C -T >/dev/null
+	fsck $FORCEFSCK -a -A -C -T >/dev/null
 	if [ "$?" -gt 1 ]; then
-		echo "*******************************"
-		echo "*** Filesystem check failed ***"
-		echo "** You been dropped to shell **"
-		echo "*******************************"
-		/bin/sh
+		echo "*******************************************"
+		echo "**        Filesystem check failed        **"
+		echo "** You been dropped to maintenance shell **"
+		echo "*******************************************"
+		sulogin -p
 	fi
+	eval_stat
 fi
 
 msg "Mounting root file system in read-write mode..."
 mount --options remount,rw / >/dev/null
+eval_stat
 
 msg "Mounting remaining file systems..."
 mount --all --test-opts no_netdev >/dev/null
+eval_stat
 
 msg "Cleanup system..."
 > /var/run/utmp
@@ -94,31 +124,46 @@ if grep -q '^utmp:' /etc/group ; then
 	chgrp utmp /var/run/utmp
 fi
 rm -f /fastboot /forcefsck
-(cd /var/run && find . -name "*.pid" -delete)
-(cd /tmp &&
-find . -xdev -mindepth 1 ! -name lost+found -delete
-mkdir -m 1777 /tmp/.ICE-unix
-mkdir -m 1777 /tmp/.X11-unix)
+find /var/run -name "*.pid" -delete
+eval_stat
+
+if [[ "$clean_tmp" = [Yy][Ee][Ss] ]]; then
+	msg "Cleanup /tmp directory..."
+	find /tmp -xdev -mindepth 1 ! -name lost+found -delete
+	mkdir -m 1777 /tmp/.ICE-unix
+	mkdir -m 1777 /tmp/.X11-unix
+	eval_stat
+fi
 
 if [ -n "$FONT" ] || [ -n "$KEYMAP" ]; then
 	msg "Setting up Linux console..."
 	[ -z "$FONT" ]   || setfont $FONT
 	[ -z "$KEYMAP" ] || loadkeys -q $KEYMAP
+	eval_stat
 fi
 
 if [ -f "/etc/sysctl.conf" ]; then
 	msg "Setting kernel runtime parameters..."
 	sysctl -q -p
+	eval_stat
 fi
 
-msg "Setting up system time..."
-hwclock --hctosys $CLOCKPARAMS
+if [[ "$utc_clock" = [Yy][Ee][Ss] ]]; then
+	CLOCK="--utc"
+else
+	CLOCK="--localtime"
+fi
+msg "Setting up system time ($CLOCK)..."
+hwclock --hctosys $CLOCK
+eval_stat
 
 msg "Updating shared library links..."
 ldconfig
+eval_stat
 
 if [ -f "/var/lib/random-seed" ]; then
 	msg "Initializing random number generator..."
 	cat /var/lib/random-seed >/dev/urandom
 	rm -f /var/lib/random-seed
+	eval_stat
 fi

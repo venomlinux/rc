@@ -1,39 +1,32 @@
 #!/bin/sh
 #
-# /etc/rc.d/rc.sysklogd
+# /etc/rc.d/sysklogd
 #
+
+. /etc/rc.subr
 
 PROG=/sbin/syslogd
 PROGK=/sbin/klogd
-PROCPID=$(pidof $PROG)
-PROCPIDK=$(pidof $PROGK)
 
 case "${1}" in
 	start)
-		echo "Starting system log daemon..."
-		if [ -z "$PROCPID" ]; then
-			parms=${SYSKLOGD_PARMS-'-m 0'}
-			$PROG $parms
-		fi
+		msg "Starting system log daemon..."
+		parms=${SYSKLOGD_PARMS-'-m 0'}
+		start_daemon $PROG $parms
+		eval_stat
 
-		echo "Starting kernel log daemon..."
-		if [ -z "$PROCPIDK" ]; then
-			$PROGK
-		fi
+		msg "Starting kernel log daemon..."
+		start_daemon $PROGK
+		eval_stat
 		;;
 	stop)
-		echo "Stopping kernel log daemon..."
-		if [ "$PROCPIDK" ]; then
-			for pidk in $PROCPIDK; do
-				kill "$pidk"
-			done
-		fi
-		echo "Stopping system log daemon..."
-		if [ "$PROCPID" ]; then
-			for pid in $PROCPID; do
-				kill "$pid"
-			done
-		fi
+		msg "Stopping kernel log daemon..."
+		stop_daemon $PROG
+		eval_stat
+		
+		msg "Stopping system log daemon..."
+		stop_daemon $PROGK
+		eval_stat
 		;;
 	reload)
 		echo "Reloading system log daemon config file..."
@@ -46,16 +39,8 @@ case "${1}" in
 		${0} start
 		;;
 	status)
-		if [ "$PROCPID" ]; then
-			echo "System log daemon is running with pid: $PROCPID"
-		else
-			echo "System log daemon is not running."
-		fi
-		if [ "$PROCPIDK" ]; then
-			echo "Kernel log daemon is running with pid: $PROCPIDK"
-		else
-			echo "Kernel log daemon is not running."
-		fi
+		status_daemon $PROG
+		status_daemon $PROGK
 		;;
 	*)
 		echo "Usage: ${0} {start|stop|reload|restart|status}"

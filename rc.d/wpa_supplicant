@@ -1,17 +1,16 @@
 #!/bin/sh
 #
-# /etc/rc.d/rc.wpa_supplicant: start/stop wireless interface
+# /etc/rc.d/wpa_supplicant: start/stop wireless interface
 #
 
 . /etc/conf.d/wpa_supplicant
+. /etc/rc.subr
 
 NAME=wpa_supplicant
 PROG=/sbin/wpa_supplicant
-PROCPID=$(pidof $PROG)
 PIDFILE_WPA=/var/run/$NAME.pid
 
 PROG_DHCP=/sbin/dhcpcd
-PROCPID_DHCP=$(pidof $PROG_DHCP)
 PIDFILE__DHCP=/var/run/$NAME.pid
 
 OPTS="-B -P $PIDFILE_WPA -D nl80211,wext -c /etc/wpa_supplicant.conf -i $DEV"
@@ -19,25 +18,22 @@ OPTS_DHCP="--waitip -h $(/bin/hostname) -z $DEV"
 
 case $1 in
 	start)
-		echo "Starting $NAME..."
-		if [ "$PROCPID" ]; then
-			exit
-		fi
-		$PROG $OPTS
-		$PROG_DHCP $OPTS_DHCP
+		msg "Starting $NAME..."
+		start_daemon $PROG $OPTS
+		eval_stat
+		
+		msg "Start dhcpcd..."
+		start_daemon $PROG_DHCP $OPTS_DHCP
+		eval_stat
 		;;
 	stop)
-		echo "Stopping $NAME..."
-		if [ "$PROCPID" ]; then
-			for pid in $PROCPID; do
-				kill "$pid"
-			done
-		fi
-		if [ "$PROCPID_DHCP" ]; then
-			for pid in $PROCPID_DHCP; do
-				kill "$pid"
-			done
-		fi
+		msg "Stopping $NAME..."
+		stop_daemon $PROG
+		eval_stat
+		
+		msg "Stopping dhcpcd..."
+		stop_daemon $PROG_DHCP
+		eval_stat
 		;;
 	restart)
 		$0 stop
@@ -45,20 +41,12 @@ case $1 in
 		$0 start
 		;;
 	status)
-		if [ "$PROCPID" ]; then
-			echo "$NAME is running with pid: $PROCPID"
-		else
-			echo "$NAME is not running."
-		fi
-		if [ "$PROCPID_DHCP" ]; then
-			echo "dhcpcd is running with pid: $PROCPID_DHCP"
-		fi
+		status_daemon $PROG
+		status_daemon $PROG_DHCP
 		;;
 	*)
 		echo "Usage: $0 [start|stop|restart|status]"
 		;;
 esac
-
-exit 0
 
 # End of file

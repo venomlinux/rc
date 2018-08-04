@@ -1,7 +1,9 @@
 #!/bin/sh
 #
-# /etc/rc.d/rc.alsa: store/restore ALSA mixer levels
+# /etc/rc.d/alsa: store/restore ALSA mixer levels
 #
+
+. /etc/rc.subr
 
 # location of the alsactl executable
 ALSACTL=/usr/sbin/alsactl
@@ -9,13 +11,15 @@ ALSACTL=/usr/sbin/alsactl
 case $1 in
 	start)
 		if [ -f /var/lib/alsa/asound.state ]; then
-			echo "Restoring ALSA volume state..."
+			msg "Restoring ALSA volume state..."
 			$ALSACTL restore
+			eval_stat
 		fi
 		;;
 	stop)
-		echo "Saving ALSA volume state..."
+		msg "Saving ALSA volume state..."
 		$ALSACTL store
+		eval_stat
 		;;
 	restart)
 		$0 stop
@@ -26,7 +30,5 @@ case $1 in
 		echo "Usage: $0 [start|stop|restart]"
 		;;
 esac
-
-exit 0
 
 # End of file

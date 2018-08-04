@@ -3,17 +3,20 @@
 # /etc/rc.d/light: start/stop light
 #
 
-NAME="Brightness"
+. /etc/rc.subr
+
+NAME="Brightnes"
 PROG=/usr/bin/light
 
 case $1 in
 	start)
-		echo "Restoringg $NAME..."
-		$PROG -I
+		msg "Restoring $NAME..."
+		start_daemon $PROG -I
+		eval_stat
 		;;
 	stop)
-		echo "Saving $NAME..."
-		$PROG -O
+		msg "Saving $NAME..."
+		start_daemon $PROG -O
 		;;
 	restart)
 		$0 stop
@@ -23,7 +26,5 @@ case $1 in
 		echo "usage: $0 [start|stop|restart]"
 		;;
 esac
-
-exit 0
 
 # End of file

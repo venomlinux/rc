@@ -1,33 +1,27 @@
 #!/bin/sh	
 #	
-# /etc/rc.d/net: start/stop the ISC DHCP Server	
+# /etc/rc.d/network: start/stop the ISC DHCP Server	
 #	
 	
 . /etc/conf.d/network
+. /etc/rc.subr
 
 DEV=${DEV:-$(ls /sys/class/net/ | grep -Exv "(lo|sit0)" | head -n1)}
 
-PROG=/sbin/dhcpcd	
-PROGNAME=$(basename `echo $PROG`)	
+PROG=/sbin/dhcpcd
 PIDFILE=/var/run/$PROGNAME.pid	
-OPTS="--waitip -h $(/bin/hostname) -z $DEV"	
-PROCPID=$(pidof $PROGNAME)	
+OPTS="--waitip -h $(/bin/hostname) -z $DEV"
 	
 case $1 in	
 	start)	
-		echo "Starting $PROGNAME..."	
-		if [ "$PROCPID" ]; then	
-			exit	
-		fi	
-		$PROG $OPTS	
+		msg "Starting $PROGNAME..."	
+		start_daemon $PROG $OPTS
+		eval_stat
 		;;	
 	stop)	
-		echo "Stopping $PROGNAME..."	
-		if [ "$PROCPID" ]; then	
-			for pid in $PROCPID; do	
-				kill "$pid"	
-			done	
-		fi	
+		msg "Stopping $PROGNAME..."	
+		stop_daemon $PROG
+		eval_stat
 		;;	
 	restart)	
 		$0 stop	
@@ -35,15 +29,11 @@ case $1 in
 		$0 start	
 		;;	
 	status)	
-		if [ "$PROCPID" ]; then	
-			echo "$PROGNAME is running with pid: $PROCPID"	
-		else	
-			echo "$PROGNAME is not running"	
-		fi	
+		status_daemon $PROG
 		;;	
 	*)	
 		echo "Usage: $0 [start|stop|restart|status]"	
 		;;	
-esac	
-	
-exit 0
+esac
+
+# End of file

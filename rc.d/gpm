@@ -1,32 +1,25 @@
 #!/bin/sh
 #
-# /etc/rc.d/rc.gpm: start/stop the GPM console mouse service
+# /etc/rc.d/gpm: start/stop the GPM console mouse service
 #
 
 . /etc/conf.d/gpm
+. /etc/rc.subr
 
 PROG=/usr/sbin/gpm
-PROGNAME=$(basename `echo $PROG`)
 PIDFILE=/var/run/$PROGNAME.pid
 OPTS="-m $MDEVICE -t $PROTOCOL $GPMOPTS"
-if [ -f $PIDFILE ]; then
-	PROCPID=$(head -n1 $PIDFILE)
-fi
 
 case $1 in
 	start)
-		echo "Starting GPM console mouse service..."
-		if [ "$PROCPID" ]; then
-			exit
-		fi
-		$PROG $OPTS
+		msg "Starting GPM console mouse service..."
+		start_daemon $PROG $OPTS
+		eval_stat
 		;;
 	stop)
-		echo "Stopping GPM console mouse service..."
-		if [ "$PROCPID" ]; then
-			kill $PROCPID
-			rm -f $PIDFILE
-		fi
+		msg "Stopping GPM console mouse service..."
+		stop_daemon $PROG
+		eval_stat
 		;;
 	restart)
 		$0 stop
@@ -34,17 +27,11 @@ case $1 in
 		$0 start
 		;;
 	status)
-		if [ "$PROCPID" ]; then
-			echo "$PROGNAME is running with pid: $PROCPID"
-		else
-			echo "$PROGNAME is not running"
-		fi
+		status_daemon $PROG
 		;;
 	*)
 		echo "usage: $0 [start|stop|restart|status]"
 		;;
 esac
-
-exit 0
 
 # End of file

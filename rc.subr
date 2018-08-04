@@ -1,0 +1,237 @@
+#!/bin/sh
+
+GREY="\e[0;39m"
+GREEN="\e[1;32m"
+YELLOW="\e[1;33m"
+RED="\e[1;31m"
+CYAN="\e[1;36m"
+BLUE="\e[1;34m"
+CRESET="\e[0m"
+
+PRINTOK="[  ${GREEN}OK${CRESET}  ]"
+PRINTFAIL="[ ${RED}FAIL${CRESET} ]"
+PRINTWARN="[ ${YELLOW}WARN${CRESET} ]"
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin
+
+curs_pos() {
+	COLUMN=$(stty size | awk '{print $2}')
+	COL=$((COLUMN - 7))
+	echo "\e[${COL}G"
+}
+
+msg() {
+	echo -ne "${CYAN}*${CRESET} $@"
+}
+
+stat_ok() {
+	echo -e "$(curs_pos)${PRINTOK}"
+}
+
+stat_fail() {
+	echo -e "$(curs_pos)${PRINTFAIL}"
+}
+
+stat_warn() {
+	echo -e "$(curs_pos)${PRINTWARN}"
+}
+
+eval_stat() {
+	if [ "$?" = "0" ]; then
+		stat_ok
+	else
+		stat_fail
+		return $?
+	fi
+}
+
+start_daemon() {
+	# Usage: start_daemon [-f] [-n nicelevel] [-p pidfile] program [args...]
+	
+	local nice=0
+	local force
+	local pidfile
+	local pathname
+	local pidlist
+	
+	while true; do
+		case $1 in
+			-f) force=1
+				shift ;;
+			-n) nice=$2
+				shift 2 ;;
+			-p) pidfile=$2
+				shift 2 ;;
+			 *) pathname=$1
+				shift
+				break ;;
+		esac
+	done
+	
+	if [ $(basename $pathname) = "$pathname" ]; then
+		progname=$pathname
+		pathname=$(type -p $pathname)
+	else
+		progname=$(basename $pathname)
+	fi
+	
+	# check for valid program
+	if [ -z "$pathname" ] || [ ! -e "$pathname" ]; then
+		return 5
+	fi
+	if [ -z "$force" ]; then
+		if [ "$pidfile" ]; then
+			pidlist=$(procpid -p $pidfile $progname)
+		else
+			pidlist=$(procpid $progname)
+		fi
+		if [ "$pidlist" ]; then
+			return 0
+		fi
+	fi
+	
+	nice -n $nice $progname $@
+}
+
+stop_daemon() {
+	# Usage: stop_daemon [-p pidfile] program [signal]
+	
+	local signal="-TERM"
+	local fallback="-KILL"
+	local delay=10
+	local pid
+	local pidfile
+	local pathname
+	local pidlist
+	
+	while true; do
+		case $1 in
+			-p) pidfile=$2
+				shift 2 ;;
+			 *) pathname=$1
+				if [ "$2" ]; then
+					signal=$2
+				fi
+				if [ "$3" ]; then
+					return 4
+				fi
+				break ;;
+		esac
+	done
+	
+	if [ $(basename $pathname) = "$pathname" ]; then
+		progname=$pathname
+		pathname=$(type -p $pathname)
+	else
+		progname=$(basename $pathname)
+	fi
+	
+	# check for valid program
+	if [ -z "$pathname" ] || [ ! -e "$pathname" ]; then
+		return 5
+	fi
+	
+	if [ "$pidfile" ]; then
+		pidlist=$(procpid -p $pidfile $progname)
+	else
+		pidlist=$(procpid $progname)
+	fi
+	
+	if [ "$pidlist" != "" ]; then
+		for pid in $pidlist; do
+			kill -0 $pid 2>/dev/null
+			if [ "$?" = 0 ]; then
+				kill "$signal" $pid 2>/dev/null
+				while [[ "delay" -ne 0 ]]; do
+					kill -0 $pid 2>/dev/null || piddead=1
+					[ "$piddead" ] && break
+					sleep 0.1
+					delay="$(($delay - 1))"
+				done
+				if [ ! "$piddead" ]; then
+					kill "$fallback" $pid 2>/dev/null
+				fi
+			fi
+		done
+	fi
+}
+
+status_daemon() {
+	# Usage: status_daemon [-p pidfile] program
+	
+	local pidfile
+	local pidlist
+	local pathname
+	
+	while true; do
+		case $1 in
+			-p) pidfile=$2
+				shift 2 ;;
+			 *) pathname=$1
+				[ "$2" ] && return 4
+				break ;;
+		esac
+	done
+	
+	if [ $(basename $pathname) = "$pathname" ]; then
+		progname=$pathname
+		pathname=$(type -p $pathname)
+	else
+		progname=$(basename $pathname)
+	fi
+	
+	if [ "$pidfile" ]; then
+		pidlist=$(procpid -p $pidfile $progname)
+	else
+		pidlist=$(procpid $progname)
+	fi
+	
+	if [ "$pidlist" ]; then
+		echo "$progname is running with Process ID(s): $pidlist"
+	else
+		if [ -e /var/run/$progname.pid ]; then
+			echo "$progname is not running but '/var/run/$progname.pid' exist."
+		else
+			echo "$progname is not running."
+		fi
+	fi
+}			
+				
+procpid() {
+	# Usage: procpid [-p pidfile] program
+	
+	while true; do
+		case $1 in
+			-p) pidfile=$2
+				shift 2 ;;
+			 *) if [ "$2" ]; then
+					return 4
+				else
+					pathname=$1
+				fi
+				break ;;
+		esac
+	done
+	
+	if [ $(basename $pathname) = "$pathname" ]; then
+		progname=$pathname
+		pathname=$(type -p $pathname)
+	else
+		progname=$(basename $pathname)
+	fi
+	
+	if [ "$pidfile" ] && [ -e "$pidfile" ]; then
+		pidlist=$(head -n1 "$pidfile")
+	else
+		pidlist=$(pidof "$progname")
+	fi
+	
+	for pid in $pidlist; do
+		#kill -0 $pid 2>/dev/null
+		#if [ "$?" = "0" ]; then
+			pids+="$pid "
+		#fi
+	done
+	
+	echo $pids
+}

@@ -1,40 +1,36 @@
 #!/bin/sh
 #
-# /etc/rc.d/rc.httpd: start/stop Apache HTTP daemon
+# /etc/rc.d/httpd: start/stop Apache HTTP daemon
 #
+
+. /etc/rc.subr
 
 NAME="Apache HTTP daemon"
 PROG=/usr/sbin/httpd
-PROCPID=$(pidof $PROG)
 
 case $1 in
 	start)
-		echo "Starting $NAME..."
-		if [ "$PROCPID" ]; then
-			exit
-		fi
+		msg "Starting $NAME..."
 		mkdir -p /var/run/httpd
-		/usr/sbin/apachectl -k start
+		start_daemon /usr/sbin/apachectl -k start
+		eval_stat
 		;;
 	stop)
-		echo "Stopping $NAME..."
-		/usr/sbin/apachectl -k stop
+		msg "Stopping $NAME..."
+		start_daemon /usr/sbin/apachectl -k stop
+		eval_stat
 		;;
 	restart)
-		/usr/sbin/apachectl -k restart
+		msg "Restarting $NAME..."
+		start_daemon /usr/sbin/apachectl -k restart
+		eval_stat
 		;;
 	status)
-		if [ "$PROCPID" ]; then
-			echo "$NAME is running with pid: $PROCPID"
-		else
-			echo "$NAME is not running."
-		fi
+		status_daemon $PROG
 		;;
 	*)
 		echo "usage: $0 [start|stop|restart|status]"
 		;;
 esac
-
-exit 0
 
 # End of file

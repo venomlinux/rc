@@ -1,47 +1,34 @@
 #!/bin/sh
 #
-# /etc/rc.d/rc.sddm: start/stop sddm daemon
+# /etc/rc.d/sddm: start/stop sddm daemon
 #
+
+. /etc/rc.subr
 
 NAME="sddm"
 PROG=/usr/bin/sddm
-PROCPID=$(pidof $PROG)
-PROGNAME=$(basename `echo $PROG`)
-#PIDFILE=/var/run/$PROGNAME.pid
 
 case $1 in
 	start)
-		echo "Starting $NAME..."
-		if [ "$PROCPID" ]; then
-			exit
-		fi
-		/usr/bin/sddm &
+		msg "Starting $NAME..."
+		start_daemon /usr/bin/sddm &
+		eval_stat
 		;;
 	stop)
-		echo "Stopping $NAME..."
-		if [ "$PROCPID" ]; then
-			for pid in $PROCPID; do
-				kill "$pid"
-			done
-		fi
-		#rm -f $PIDFILE
+		msg "Stopping $NAME..."
+		stop_daemon $PROG
 		;;
 	restart)
 		$0 stop
+		sleep 1
 		$0 start
 		;;
 	status)
-		if [ "$PROCPID" ]; then
-			echo "$NAME is running with pid: $PROCPID"
-		else
-			echo "$NAME is not running."
-		fi
+		status_daemon $PROG
 		;;
 	*)
 		echo "usage: $0 [start|stop|restart|status]"
 		;;
 esac
-
-exit 0
 
 # End of file
