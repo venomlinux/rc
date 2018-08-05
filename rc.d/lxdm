@@ -12,16 +12,17 @@ PIDFILE=/var/run/lxdm.pid
 case $1 in
 	start)
 		msg "Starting $NAME..."
-		start_daemon /usr/sbin/lxdm -d
+		start_daemon -p $PIDFILE /usr/sbin/lxdm -d
 		eval_stat
 		;;
 	stop)
 		msg "Stopping $NAME..."
-		stop_daemon /usr/sbin/lxdm
+		stop_daemon -p $PIDFILE /usr/sbin/lxdm
 		eval_stat
 		;;
 	restart)
 		$0 stop
+		sleep 1
 		$0 start
 		;;
 	status)

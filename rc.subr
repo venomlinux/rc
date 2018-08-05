@@ -11,6 +11,7 @@ CRESET="\e[0m"
 PRINTOK="[  ${GREEN}OK${CRESET}  ]"
 PRINTFAIL="[ ${RED}FAIL${CRESET} ]"
 PRINTWARN="[ ${YELLOW}WARN${CRESET} ]"
+PRINTSKIP="[ ${YELLOW}SKIP${CRESET} ]"
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
@@ -21,7 +22,7 @@ curs_pos() {
 }
 
 msg() {
-	echo -ne "${CYAN}*${CRESET} $@"
+	echo -ne "${GREEN}*${CRESET} $@"
 }
 
 stat_ok() {
@@ -34,6 +35,10 @@ stat_fail() {
 
 stat_warn() {
 	echo -e "$(curs_pos)${PRINTWARN}"
+}
+
+stat_skip() {
+	echo -e "$(curs_pos)${PRINTSKIP}"
 }
 
 eval_stat() {
@@ -154,6 +159,10 @@ stop_daemon() {
 			fi
 		done
 	fi
+	
+	if [ "$pidfile" ] && [ -e "$pidfile" ]; then
+		rm -f "$pidfile"
+	fi
 }
 
 status_daemon() {
@@ -222,10 +231,10 @@ procpid() {
 	
 	if [ "$pidfile" ] && [ -e "$pidfile" ]; then
 		pidlist=$(head -n1 "$pidfile")
-	else
-		pidlist=$(pidof "$progname")
 	fi
 	
+	pidlist+=$( pidof "$progname")
+		
 	for pid in $pidlist; do
 		#kill -0 $pid 2>/dev/null
 		#if [ "$?" = "0" ]; then

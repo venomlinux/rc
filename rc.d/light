@@ -17,6 +17,7 @@ case $1 in
 	stop)
 		msg "Saving $NAME..."
 		start_daemon $PROG -O
+		eval_stat
 		;;
 	restart)
 		$0 stop

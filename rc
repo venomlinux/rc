@@ -41,10 +41,11 @@ Usage:
     rc <option> <daemon>
 
 Options:
-    list               List available daemons
-    start  <daemons>   Start daemons
-    stop   <daemons>   Stop daemons
-    status <daemons>   Show daemon status
+    list                 List available daemons
+    start    <daemons>   Start daemons
+    stop     <daemons>   Stop daemons
+    restart  <daemons>   Restart daemons
+    status   <daemons>   Show daemon status
     
 EOF
 }
@@ -52,12 +53,13 @@ EOF
 case "$1" in
 	list)
 		dlist ;;
-	start|stop)
+	start|stop|restart)
 		needroot "This operation"
 		[ -z "$2" ] && exit 1
+		opr=$1
 		dcheck $@
 		while [ "$2" ]; do
-			"$RCD/$2" $1
+			"$RCD/$2" $opr
 			shift
 		done ;;
 	status)

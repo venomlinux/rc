@@ -15,12 +15,12 @@ case $1 in
 		msg "Starting D-BUS Messagebus daemon..."
 		mkdir -p /run/dbus
 		/usr/bin/dbus-uuidgen --ensure
-		start_daemon $PROG $OPTS
+		start_daemon -p $PIDFILE $PROG $OPTS
 		eval_stat
 		;;
 	stop)
 		msg "Stopping D-BUS Messagebus daemon..."
-		stop_daemon $PROG
+		stop_daemon -p $PIDFILE $PROG
 		eval_stat
 		;;
 	restart)
