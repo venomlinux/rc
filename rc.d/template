@@ -11,17 +11,26 @@ NAME="template daemon"
 PROG=/usr/bin/foo
 OPTS="--background"
 PIDFILE=/var/run/$PROGNAME.pid
+PID=$(pidof -o %PPID $PROG)
 
 case $1 in
 	start)
 		msg "Starting $NAME..."
-		start_daemon $PROG $OPTS
-		eval_stat
+		if [ -z "$PID" ]; then
+			$PROG $OPTS
+			eval_stat
+		else
+			stat_skip
+		fi
 		;;
 	stop)
 		msg "Stopping $NAME..."
-		stop_daemon $PROG
-		eval_stat
+		if [ ! -z "$PID" ]; then
+			kill $PID &>/dev/null
+			eval_stat
+		else
+			stat_skip
+		fi
 		;;
 	restart)
 		$0 stop
@@ -29,7 +38,11 @@ case $1 in
 		$0 start
 		;;
 	status)
-		status_daemon $PROG
+		if [ "$PID" ]; then
+			echo "$NAME is running with pid: $PID"
+		else
+			echo "$NAME is not running."
+		fi
 		;;
 	*)
 		echo "usage: $0 [start|stop|restart|status]"

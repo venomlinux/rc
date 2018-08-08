@@ -9,38 +9,25 @@
 NAME="GPM console mouse service"
 PROG=/usr/sbin/gpm
 OPTS="-m $MDEVICE -t $PROTOCOL $GPMOPTS"
-PID=$(pidof -o %PPID $PROG)
 
 case $1 in
 	start)
 		msg "Starting GPM console mouse service..."
-		if [ -z "$PID" ]; then
-			$PROG $OPTS
-			eval_stat
-		else
-			stat_skip
-		fi
+		start_daemon $PROG $OPTS
+		eval_stat
 		;;
 	stop)
 		msg "Stopping GPM console mouse service..."
-		if [ ! -z "$PID" ]; then
-			kill $PID &>/dev/null
-			eval_stat
-		else
-			stat_skip
-		fi
+		stop_daemon $PROG
+		eval_stat
 		;;
 	restart)
 		$0 stop
 		sleep 1
 		$0 start
 		;;
-	status)
-		if [ "$PID" ]; then
-			echo "$NAME is running with pid: $PID"
-		else
-			echo "$NAME is not running."
-		fi
+	status)		
+		status_daemon $PROG
 		;;
 	*)
 		echo "usage: $0 [start|stop|restart|status]"

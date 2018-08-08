@@ -8,7 +8,7 @@
 PROG=/sbin/syslogd
 PROGK=/sbin/klogd
 
-case "${1}" in
+case "$1" in
 	start)
 		msg "Starting system log daemon..."
 		parms=${SYSKLOGD_PARMS-'-m 0'}
@@ -31,19 +31,19 @@ case "${1}" in
 	reload)
 		echo "Reloading system log daemon config file..."
 		pid=`pidof syslogd`
-		kill -HUP "${pid}"
+		kill -HUP "$pid"
 		;;
 	restart)
-		${0} stop
+		$0 stop
 		sleep 1
-		${0} start
+		$0 start
 		;;
 	status)
 		status_daemon $PROG
 		status_daemon $PROGK
 		;;
 	*)
-		echo "Usage: ${0} {start|stop|reload|restart|status}"
+		echo "Usage: $0 [start|stop|reload|restart|status]"
 		exit 1
 		;;
 esac

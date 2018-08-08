@@ -91,7 +91,7 @@ eval_stat
 [ -f /forcefsck ] && FORCEFSCK="-f"
 for arg in $(cat /proc/cmdline); do
     case $arg in
-        fastboot) FASTBOOT=1;;
+         fastboot) FASTBOOT=1;;
         forcefsck) FORCEFSCK="-f";;
     esac
 done
@@ -127,7 +127,7 @@ rm -f /fastboot /forcefsck
 find /var/run -name "*.pid" -delete
 eval_stat
 
-if [[ "$clean_tmp" = [Yy][Ee][Ss] ]]; then
+if [[ "$CLEANTMP" = [Yy][Ee][Ss] ]]; then
 	msg "Cleanup /tmp directory..."
 	find /tmp -xdev -mindepth 1 ! -name lost+found -delete
 	mkdir -m 1777 /tmp/.ICE-unix
@@ -137,8 +137,8 @@ fi
 
 if [ -n "$FONT" ] || [ -n "$KEYMAP" ]; then
 	msg "Setting up Linux console..."
-	[ -z "$FONT" ]   || setfont $FONT
-	[ -z "$KEYMAP" ] || loadkeys -q $KEYMAP
+	[ -z "$CONSOLEFONT" ] || setfont $FONT
+	[ -z "$KEYMAP" ]      || loadkeys -q $KEYMAP
 	eval_stat
 fi
 
@@ -148,7 +148,7 @@ if [ -f "/etc/sysctl.conf" ]; then
 	eval_stat
 fi
 
-if [[ "$utc_clock" = [Yy][Ee][Ss] ]]; then
+if [[ "$UTCCLOCK" = [Yy][Ee][Ss] ]]; then
 	CLOCK="--utc"
 else
 	CLOCK="--localtime"

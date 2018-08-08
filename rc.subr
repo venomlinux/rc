@@ -22,7 +22,7 @@ curs_pos() {
 }
 
 msg() {
-	echo -ne "${GREEN}*${CRESET} $@"
+	echo -ne "${GREEN}*${CRESET} $@ "
 }
 
 stat_ok() {
@@ -42,12 +42,11 @@ stat_skip() {
 }
 
 eval_stat() {
-	if [ "$?" = "0" ]; then
-		stat_ok
-	else
-		stat_fail
-		return $?
-	fi
+	case "$?" in
+		100) stat_skip ;;
+		  0) stat_ok ;;
+		  *) stat_fail; return $? ;;
+	esac
 }
 
 start_daemon() {
@@ -91,11 +90,11 @@ start_daemon() {
 			pidlist=$(procpid $progname)
 		fi
 		if [ "$pidlist" ]; then
-			return 0
+			return 100
 		fi
 	fi
 	
-	nice -n $nice $progname $@
+	nice -n $nice $pathname $@
 }
 
 stop_daemon() {
@@ -158,6 +157,8 @@ stop_daemon() {
 				fi
 			fi
 		done
+	else
+		return 100
 	fi
 	
 	if [ "$pidfile" ] && [ -e "$pidfile" ]; then
