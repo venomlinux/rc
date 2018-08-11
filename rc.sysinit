@@ -127,13 +127,11 @@ rm -f /fastboot /forcefsck
 find /var/run -name "*.pid" -delete
 eval_stat
 
-if [[ "$CLEANTMP" = [Yy][Ee][Ss] ]]; then
-	msg "Cleanup /tmp directory..."
-	find /tmp -xdev -mindepth 1 ! -name lost+found -delete
-	mkdir -m 1777 /tmp/.ICE-unix
-	mkdir -m 1777 /tmp/.X11-unix
-	eval_stat
-fi
+msg "Cleanup /tmp directory..."
+find /tmp -xdev -mindepth 1 ! -name lost+found -delete
+mkdir -m 1777 /tmp/.ICE-unix
+mkdir -m 1777 /tmp/.X11-unix
+eval_stat
 
 if [ -n "$FONT" ] || [ -n "$KEYMAP" ]; then
 	msg "Setting up Linux console..."

@@ -43,7 +43,7 @@ msg "Saving random seed..."
 dd if=/dev/urandom of=/var/lib/random-seed count=1 bs=512 2>/dev/null
 eval_stat
 
-if [[ "$utc_clock" = [Yy][Ee][Ss] ]]; then
+if [[ "$UTCCLOCK" = [Yy][Ee][Ss] ]]; then
 	CLOCK="--utc"
 else
 	CLOCK="--localtime"
