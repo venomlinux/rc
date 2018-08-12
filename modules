@@ -1,0 +1,24 @@
+#!/bin/sh
+
+if [ "$UID" != "0" ];then
+	echo "$(basename $0) need to run as root!"
+	exit 1
+fi
+
+MODULES_DIR=/etc/modules.d
+MODULES_FILE=/etc/modules
+
+error=0
+
+for file in $MODULES_FILE $(ls $MODULES_DIR/*.conf 2>/dev/null); do
+	[ ! -f $file ] && continue
+	while read module junk; do
+		# Ignore comments and blank lines
+		case "$module" in
+			""|\#*) continue ;;
+		esac
+		modprobe -ab $module || error=1
+	done < $file
+done
+
+exit $error

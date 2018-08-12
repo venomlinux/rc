@@ -14,7 +14,7 @@ create-bin-dir:
 install: create-dirs create-bin-dir
 	install -m 754 ${RCFILES} ${EXTDIR}
 	install -m 644 inittab rc.conf ${EXTDIR}
-	install -m 755 rc ${EBINDIR}
+	install -m 755 rc modules sysusers ${EBINDIR}
 
 install-daemon: create-dirs
 	install -m 755 rc.d/* ${EXTDIR}/rc.d/

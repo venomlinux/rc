@@ -36,20 +36,9 @@ else
 fi
 eval_stat
 
-msg "Load static kernel modules..."
-for f in $(kmod static-nodes 2>/dev/null|awk '/Module/ {print $2}'); do
-	modprobe -bq $f 2>/dev/null
-done
+msg "Loading kernel modules..."
+modules
 eval_stat
-
-if [ ${#MODULES[@]} -gt 0 ]; then
-	msg "Loading kernel modules:"
-	for module in ${MODULES[@]}; do
-		echo -n " $module"
-		modprobe $module &>/dev/null
-	done
-	eval_stat
-fi
 
 msg "Bringing up the loopback interface..."
 ip addr add 127.0.0.1/8 label lo dev lo
@@ -158,6 +147,8 @@ eval_stat
 msg "Updating shared library links..."
 ldconfig
 eval_stat
+
+sysusers
 
 if [ -f "/var/lib/random-seed" ]; then
 	msg "Initializing random number generator..."
