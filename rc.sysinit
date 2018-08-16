@@ -3,20 +3,12 @@
 # /etc/rc.sysinit: System Initialization Script
 #
 
-welcome() {
-	echo
-	echo -e "Welcome to \e[0;32m$1\e[0m!"
-	echo
-}
-
 . /etc/rc.conf
 . /etc/rc.subr
 
 [ -r /etc/lsb-release ] && . /etc/lsb-release
 
-DISTRO_NAME=${DISTRIB_DESCRIPTION:-'GNU/Linux'}
-
-welcome "$DISTRO_NAME"
+welcome "${DISTRIB_DESCRIPTION:-'GNU/Linux'}"
 
 msg "Mounting virtual file systems..."
 mountpoint -q /run  || mount /run
@@ -28,28 +20,12 @@ chmod 1777 /run/shm /run/lock
 ln -sfn /run/shm /dev/shm
 eval_stat
 
-msg "Updating module dependency list..."
-if [ -e "/lib/modules/$(uname -r)/modules.dep" ]; then
-	depmod --quick
-else
-	depmod --all
-fi
-eval_stat
-
-msg "Loading kernel modules..."
-modules
-eval_stat
-
 msg "Bringing up the loopback interface..."
 ip addr add 127.0.0.1/8 label lo dev lo
 ip link set lo up
 eval_stat
 
-if [ -f /etc/hostname ]; then
-	HOSTNAME=$(cat /etc/hostname)
-else
-	HOSTNAME=localhost
-fi
+[ -z $HOSTNAME ] && HOSTNAME=localhost
 msg "Setting hostname ($HOSTNAME)..."
 hostname "$HOSTNAME"
 eval_stat
@@ -106,6 +82,10 @@ msg "Mounting remaining file systems..."
 mount --all --test-opts no_netdev >/dev/null
 eval_stat
 
+msg "Loading kernel modules..."
+modules
+eval_stat
+
 msg "Cleanup system..."
 > /var/run/utmp
 if grep -q '^utmp:' /etc/group ; then
@@ -122,10 +102,15 @@ mkdir -m 1777 /tmp/.ICE-unix
 mkdir -m 1777 /tmp/.X11-unix
 eval_stat
 
-if [ -n "$FONT" ] || [ -n "$KEYMAP" ]; then
-	msg "Setting up Linux console..."
-	[ -z "$CONSOLEFONT" ] || setfont $FONT
-	[ -z "$KEYMAP" ]      || loadkeys -q $KEYMAP
+if [  "$FONT" ]; then
+	msg "Setting console font ($FONT)..."
+	setfont $FONT
+	eval_stat
+fi
+
+if [ "$KEYMAP" ]; then
+	msg "Setting keyboard ($KEYMAP)..."
+	loadkeys -q $KEYMAP
 	eval_stat
 fi
 
@@ -135,13 +120,18 @@ if [ -f "/etc/sysctl.conf" ]; then
 	eval_stat
 fi
 
-if [[ "$UTCCLOCK" = [Yy][Ee][Ss] ]]; then
-	CLOCK="--utc"
-else
-	CLOCK="--localtime"
+if [ "$TIMEZONE" ]; then
+	msg "Setting system timezone ($TIMEZONE)..."
+	ln -snf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
+	eval_stat
 fi
+
+case $CLOCK in
+	UTC|utc) CLOCKOPT="--utc" ;;
+	local|localtime|LOCAL|LOCALTIME) CLOCKOPT="--localtime" ;;
+esac
 msg "Setting up system time ($CLOCK)..."
-hwclock --hctosys $CLOCK
+hwclock --hctosys $CLOCKOPT
 eval_stat
 
 msg "Updating shared library links..."

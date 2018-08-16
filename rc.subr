@@ -15,6 +15,12 @@ PRINTSKIP="[ ${YELLOW}SKIP${CRESET} ]"
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
 
+welcome() {
+	echo
+	echo -e "Welcome to ${GREEN}$1${CRESET}!"
+	echo
+}
+
 curs_pos() {
 	COLUMN=$(stty size | awk '{print $2}')
 	COL=$((COLUMN - 7))

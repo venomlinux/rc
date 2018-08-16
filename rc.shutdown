@@ -6,6 +6,8 @@
 . /etc/rc.subr
 [ -r /etc/rc.conf ] && . /etc/rc.conf
 
+echo
+
 if [ "$PREVLEVEL" = "2" ]; then
 	if [ "${#DAEMONS[@]}" -gt 0 ]; then
 		for daemon in ${DAEMONS[@]}; do
@@ -43,13 +45,12 @@ msg "Saving random seed..."
 dd if=/dev/urandom of=/var/lib/random-seed count=1 bs=512 2>/dev/null
 eval_stat
 
-if [[ "$UTCCLOCK" = [Yy][Ee][Ss] ]]; then
-	CLOCK="--utc"
-else
-	CLOCK="--localtime"
-fi
+case $CLOCK in
+	UTC|utc) CLOCKOPT="--utc" ;;
+	local|localtime|LOCAL|LOCALTIME) CLOCKOPT="--localtime" ;;
+esac
 msg "Saving system time to hardware clock ($CLOCK)..."
-hwclock --systohc $CLOCK
+hwclock --systohc $CLOCKOPT
 eval_stat
 
 msg "Deactivating all swap files/partitions..."
