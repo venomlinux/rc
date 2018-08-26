@@ -20,14 +20,8 @@ chmod 1777 /run/shm /run/lock
 ln -sfn /run/shm /dev/shm
 eval_stat
 
-msg "Bringing up the loopback interface..."
-ip addr add 127.0.0.1/8 label lo dev lo
-ip link set lo up
-eval_stat
-
-[ -z $HOSTNAME ] && HOSTNAME=localhost
-msg "Setting hostname ($HOSTNAME)..."
-hostname "$HOSTNAME"
+msg "Loading kernel modules..."
+modules
 eval_stat
 
 msg "Starting udev and waiting for devices to settle..."
@@ -46,6 +40,11 @@ fi
 
 msg "Activating all swap files/partitions..."
 swapon -a
+eval_stat
+
+msg "Bringing up the loopback interface..."
+ip addr add 127.0.0.1/8 label lo dev lo
+ip link set lo up
 eval_stat
 
 msg "Mounting root file system in read-only mode..."
@@ -82,8 +81,10 @@ msg "Mounting remaining file systems..."
 mount --all --test-opts no_netdev >/dev/null
 eval_stat
 
-msg "Loading kernel modules..."
-modules
+[ -z $HOSTNAME ] && HOSTNAME=localhost
+msg "Setting hostname ($HOSTNAME)..."
+hostname "$HOSTNAME"
+echo "$HOSTNAME" > /etc/hostname
 eval_stat
 
 msg "Cleanup system..."
