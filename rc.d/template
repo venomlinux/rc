@@ -18,7 +18,6 @@ case $1 in
 		msg "Starting $NAME..."
 		if [ -z "$PID" ]; then
 			$PROG $OPTS
-			eval_stat
 		else
 			stat_skip
 		fi
@@ -27,7 +26,6 @@ case $1 in
 		msg "Stopping $NAME..."
 		if [ ! -z "$PID" ]; then
 			kill $PID &>/dev/null
-			eval_stat
 		else
 			stat_skip
 		fi
