@@ -23,27 +23,14 @@ fi
 
 msg "Sending all processes the TERM signal..."
 killall5 -15
-err_val=$?
 sleep 5
-if [ "$err_val" = "0" ] || [ "$err_val" = "2" ]; then
-	stat_ok
-else
-	stat_fail
-fi
 
 msg "Sending all processes the KILL signal..."
 killall5 -9
-err_val=$?
 sleep 1
-if [ "$err_val" = "0" ] || [ "$err_val" = "2" ]; then
-	stat_ok
-else
-	stat_fail
-fi
 
 msg "Saving random seed..."
 dd if=/dev/urandom of=/var/lib/random-seed count=1 bs=512 2>/dev/null
-eval_stat
 
 case $CLOCK in
 	UTC|utc) CLOCKOPT="--utc" ;;
@@ -51,38 +38,30 @@ case $CLOCK in
 esac
 msg "Saving system time to hardware clock ($CLOCK)..."
 hwclock --systohc $CLOCKOPT
-eval_stat
 
 msg "Deactivating all swap files/partitions..."
 swapoff -a
-eval_stat
 
 msg "Unmounting all other currently mounted file systems..."
 umount --all --detach-loop --read-only \
 	--types notmpfs,nosysfs,nodevtmpfs,noproc,nodevpts >/dev/null
-eval_stat
 
 msg "Remount root filesystem in read-only mode..."
 mount --options remount,ro /
-eval_stat
 
 if [ "$RUNLEVEL" = 0 ]; then
 	msg "Writing a halt record to wtmp..."
 	halt -w
-	eval_stat
 else
 	msg "Writing a reboot record to wtmp..."
 	reboot -w
-	eval_stat
 fi
 
 msg "Bringing down the loopback interface..."
 ip link set lo down
-eval_stat
 
 msg "Flushing filesystem buffers..."
 sync
-eval_stat
 
 if [ "$RUNLEVEL" = 0 ]; then
 	msg "Powering off..."

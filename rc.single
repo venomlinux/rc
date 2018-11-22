@@ -19,23 +19,11 @@ fi
 if [ "$PREVLEVEL" != "N" ]; then
 	msg "Sending all processes the TERM signal..."
 	killall5 -15
-	err_val=$?
 	sleep 5
-	if [ "$err_val" = "0" ] || [ "$err_val" = "2" ]; then
-		stat_ok
-	else
-		stat_fail
-	fi
 
 	msg "Sending all processes the KILL signal..."
 	killall5 -9
-	err_val=$?
 	sleep 1
-	if [ "$err_val" = "0" ] || [ "$err_val" = "2" ]; then
-		stat_ok
-	else
-		stat_fail
-	fi
 
 	msg "Mounting virtual file systems..."
 	mountpoint -q /run  || mount /run
@@ -45,7 +33,6 @@ if [ "$PREVLEVEL" != "N" ]; then
 	mkdir -p /run/lock /run/shm /dev/pts
 	chmod 1777 /run/shm /run/lock
 	ln -sfn /run/shm /dev/shm
-	eval_stat
 
 	msg "Starting udev and waiting for devices to settle..."
 	udevd --daemon
@@ -53,7 +40,6 @@ if [ "$PREVLEVEL" != "N" ]; then
 	udevadm trigger --action=add    --type=devices
 	udevadm trigger --action=change --type=devices
 	udevadm settle
-	eval_stat
 fi
 
 if [ "$RUNLEVEL" = "1" ]; then

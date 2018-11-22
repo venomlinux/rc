@@ -18,11 +18,9 @@ mountpoint -q /dev  || mount -o mode=0755,nosuid /dev
 mkdir -p /run/lock /run/shm /dev/pts
 chmod 1777 /run/shm /run/lock
 ln -sfn /run/shm /dev/shm
-eval_stat
 
 msg "Loading kernel modules..."
 modules
-eval_stat
 
 msg "Starting udev and waiting for devices to settle..."
 udevd --daemon
@@ -30,26 +28,21 @@ udevadm trigger --action=add    --type=subsystems
 udevadm trigger --action=add    --type=devices
 udevadm trigger --action=change --type=devices
 udevadm settle
-eval_stat
 
 if [ -x /sbin/vgchange ]; then
 	msg "Activating LVM devices..."
 	/sbin/vgchange -a y >/dev/null
-	eval_stat
 fi
 
 msg "Activating all swap files/partitions..."
 swapon -a
-eval_stat
 
 msg "Bringing up the loopback interface..."
 ip addr add 127.0.0.1/8 label lo dev lo
 ip link set lo up
-eval_stat
 
 msg "Mounting root file system in read-only mode..."
 mount -n -o remount,ro / >/dev/null
-eval_stat
 
 [ -f /fastboot ] && FASTBOOT=1
 [ -f /forcefsck ] && FORCEFSCK="-f"
@@ -70,22 +63,18 @@ if [ -z "$FASTBOOT" ]; then
 		echo "*******************************************"
 		sulogin -p
 	fi
-	eval_stat
 fi
 
 msg "Mounting root file system in read-write mode..."
 mount --options remount,rw / >/dev/null
-eval_stat
 
 msg "Mounting remaining file systems..."
 mount --all --test-opts no_netdev >/dev/null
-eval_stat
 
 [ -z $HOSTNAME ] && HOSTNAME=localhost
 msg "Setting hostname ($HOSTNAME)..."
 hostname "$HOSTNAME"
 echo "$HOSTNAME" > /etc/hostname
-eval_stat
 
 msg "Cleanup system..."
 > /var/run/utmp
@@ -95,36 +84,30 @@ if grep -q '^utmp:' /etc/group ; then
 fi
 rm -f /fastboot /forcefsck
 find /var/run -name "*.pid" -delete
-eval_stat
 
 msg "Cleanup /tmp directory..."
 find /tmp -xdev -mindepth 1 ! -name lost+found -delete
 mkdir -m 1777 /tmp/.ICE-unix
 mkdir -m 1777 /tmp/.X11-unix
-eval_stat
 
 if [  "$FONT" ]; then
 	msg "Setting console font ($FONT)..."
 	setfont $FONT
-	eval_stat
 fi
 
 if [ "$KEYMAP" ]; then
 	msg "Setting keyboard ($KEYMAP)..."
 	loadkeys -q $KEYMAP
-	eval_stat
 fi
 
 if [ -f "/etc/sysctl.conf" ]; then
 	msg "Setting kernel runtime parameters..."
 	sysctl -q -p
-	eval_stat
 fi
 
 if [ "$TIMEZONE" ]; then
 	msg "Setting system timezone ($TIMEZONE)..."
 	ln -snf /usr/share/zoneinfo/$TIMEZONE /etc/localtime
-	eval_stat
 fi
 
 case $CLOCK in
@@ -133,11 +116,9 @@ case $CLOCK in
 esac
 msg "Setting up system time ($CLOCK)..."
 hwclock --hctosys $CLOCKOPT
-eval_stat
 
 msg "Updating shared library links..."
 ldconfig
-eval_stat
 
 sysusers
 
@@ -145,5 +126,4 @@ if [ -f "/var/lib/random-seed" ]; then
 	msg "Initializing random number generator..."
 	cat /var/lib/random-seed >/dev/urandom
 	rm -f /var/lib/random-seed
-	eval_stat
 fi
