@@ -11,13 +11,13 @@
 welcome "${DISTRIB_DESCRIPTION:-'GNU/Linux'}"
 
 msg "Mounting virtual file systems..."
-mountpoint -q /run  || mount /run
-mountpoint -q /proc || mount -o nosuid,noexec,nodev /proc
-mountpoint -q /sys  || mount -o nosuid,noexec,nodev /sys
-mountpoint -q /dev  || mount -o mode=0755,nosuid /dev
-mkdir -p /run/lock /run/shm /dev/pts
-chmod 1777 /run/shm /run/lock
-ln -sfn /run/shm /dev/shm
+mountpoint -q /proc    || mount -t proc proc /proc -o nosuid,noexec,nodev
+mountpoint -q /sys     || mount -t sysfs sys /sys -o nosuid,noexec,nodev
+mountpoint -q /run     || mount -t tmpfs run /run -o mode=0755,nosuid,nodev
+mountpoint -q /dev     || mount -t devtmpfs dev /dev -o mode=0755,nosuid
+mkdir -p /dev/{pts,shm}
+mountpoint -q /dev/pts || mount /dev/pts &>/dev/null || mount -t devpts devpts /dev/pts -o mode=0620,gid=5,nosuid,noexec
+mountpoint -q /dev/shm || mount /dev/shm &>/dev/null || mount -t tmpfs shm /dev/shm -o mode=1777,nosuid,nodev
 
 msg "Loading kernel modules..."
 modules
