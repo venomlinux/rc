@@ -120,8 +120,6 @@ hwclock --hctosys $CLOCKOPT
 msg "Updating shared library links..."
 ldconfig
 
-sysusers
-
 if [ -f "/var/lib/random-seed" ]; then
 	msg "Initializing random number generator..."
 	cat /var/lib/random-seed >/dev/urandom
