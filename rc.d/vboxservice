@@ -1,22 +1,24 @@
 #!/bin/sh
 #
-# /etc/rc.d/lxdm: start/stop lxdm daemon
+# /etc/rc.d/vboxservice: start/stop Virtualbox service
 #
 
 . /etc/rc.subr
 
-NAME="LXDM"
-PROG=/usr/sbin/lxdm-binary
-PIDFILE=/var/run/lxdm.pid
+NAME="VirtualBox Service"
+PROGNAME=VBoxService
+PROG=/usr/bin/$PROGNAME
+PIDFILE=/var/run/$PROGNAME.pid
+OPTS="-p $PIDFILE"
 
 case $1 in
 	start)
 		msg "Starting $NAME..."
-		start_daemon -p $PIDFILE /usr/sbin/lxdm -d
+		start_daemon -p $PIDFILE $PROG $OPTS
 		;;
 	stop)
 		msg "Stopping $NAME..."
-		stop_daemon -p $PIDFILE /usr/sbin/lxdm
+		stop_daemon -p $PIDFILE $PROG
 		;;
 	restart)
 		$0 stop

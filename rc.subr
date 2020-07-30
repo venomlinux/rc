@@ -1,63 +1,54 @@
 #!/bin/sh
 
-BLUE="\e[1;34m"
+COLOUR="\e[1;90m"
 CRESET="\e[0m"
 
-PATH=/bin:/usr/bin:/sbin:/usr/sbin
-
 welcome() {
-	echo
-	echo -e "Welcome to ${BLUE}$1${CRESET}!"
-	echo
+	msg "Booting up ${COLOUR}$1${CRESET}!"
 }
 
 msg() {
-	echo -e "${BLUE}::${CRESET} $@"
+	printf "%b" "${COLOUR}::${CRESET} $@\n"
 }
 
 start_daemon() {
 	# Usage: start_daemon [-f] [-n nicelevel] [-p pidfile] program [args...]
 	
-	local nice=0
-	local force
-	local pidfile
-	local pathname
-	local pidlist
+	nice=0
 	
 	while true; do
 		case $1 in
 			-f) force=1
-				shift ;;
+			    shift;;
 			-n) nice=$2
-				shift 2 ;;
+			    shift 2;;
 			-p) pidfile=$2
-				shift 2 ;;
+			    shift 2;;
 			 *) pathname=$1
-				shift
-				break ;;
+			    shift
+			    break;;
 		esac
 	done
 	
-	if [ $(basename $pathname) = "$pathname" ]; then
+	if [ ${pathname##*/} = "$pathname" ]; then
 		progname=$pathname
-		pathname=$(type -p $pathname)
+		pathname=$(command -v $pathname)
 	else
-		progname=$(basename $pathname)
+		progname=${pathname##*/}
 	fi
 	
 	# check for valid program
-	if [ -z "$pathname" ] || [ ! -e "$pathname" ]; then
-		return 5
+	[ "$pathname" ]    || return 5
+	[ -x "$pathname" ] || return 5
+
+	if [ "$pidfile" ]; then
+		pidlist=$(procpid -p $pidfile $progname)
+	else
+		pidlist=$(procpid $progname)
 	fi
-	if [ -z "$force" ]; then
-		if [ "$pidfile" ]; then
-			pidlist=$(procpid -p $pidfile $progname)
-		else
-			pidlist=$(procpid $progname)
-		fi
-		if [ "$pidlist" ]; then
-			return 100
-		fi
+
+	if [ ! "$force" ]; then
+		[ "$pidlist" ] && return 100
 	fi
 	
 	nice -n $nice $pathname $@
@@ -66,66 +57,57 @@ start_daemon() {
 stop_daemon() {
 	# Usage: stop_daemon [-p pidfile] program [signal]
 	
-	local signal="-TERM"
-	local fallback="-KILL"
-	local delay=10
-	local pid
-	local pidfile
-	local pathname
-	local pidlist
+	signal="-TERM"
+	fallback="-KILL"
+	delay=10
 	
 	while true; do
 		case $1 in
 			-p) pidfile=$2
-				shift 2 ;;
+			    shift 2;;
 			 *) pathname=$1
-				if [ "$2" ]; then
-					signal=$2
-				fi
-				if [ "$3" ]; then
-					return 4
-				fi
-				break ;;
+			    shift
+			    break ;;
 		esac
 	done
+
+	[ "$1" ] && signal=$1
+	[ "$2" ] && return 4
 	
-	if [ $(basename $pathname) = "$pathname" ]; then
+	if [ ${pathname##*/} = "$pathname" ]; then
 		progname=$pathname
-		pathname=$(type -p $pathname)
+		pathname=$(command -v $pathname)
 	else
-		progname=$(basename $pathname)
+		progname=${pathname##*/}
 	fi
 	
 	# check for valid program
-	if [ -z "$pathname" ] || [ ! -e "$pathname" ]; then
-		return 5
-	fi
+	[ "$pathname" ]    || return 5
+	[ -x "$pathname" ] || return 5
 	
 	if [ "$pidfile" ]; then
 		pidlist=$(procpid -p $pidfile $progname)
 	else
 		pidlist=$(procpid $progname)
 	fi
+
+	[ "$pidlist" ] || return 100
 	
-	if [ "$pidlist" != "" ]; then
-		for pid in $pidlist; do
-			kill -0 $pid 2>/dev/null
-			if [ "$?" = 0 ]; then
-				kill "$signal" $pid 2>/dev/null
-				while [[ "delay" -ne 0 ]]; do
-					kill -0 $pid 2>/dev/null || piddead=1
-					[ "$piddead" ] && break
-					sleep 0.1
-					delay="$(($delay - 1))"
-				done
-				if [ ! "$piddead" ]; then
-					kill "$fallback" $pid 2>/dev/null
-				fi
+	for pid in $pidlist; do
+		kill -0 $pid 2>/dev/null
+		if [ "$?" = 0 ]; then
+			kill "$signal" $pid 2>/dev/null
+			while [ "$delay" != 0 ]; do
+				kill -0 $pid 2>/dev/null || piddead=1
+				[ "$piddead" ] && break
+				sleep 0.1
+				delay="$(($delay - 1))"
+			done
+			if [ ! "$piddead" ]; then
+				kill "$fallback" $pid 2>/dev/null
 			fi
-		done
-	else
-		return 100
-	fi
+		fi
+	done
 	
 	if [ "$pidfile" ] && [ -e "$pidfile" ]; then
 		rm -f "$pidfile"
@@ -135,26 +117,27 @@ stop_daemon() {
 status_daemon() {
 	# Usage: status_daemon [-p pidfile] program
 	
-	local pidfile
-	local pidlist
-	local pathname
-	
 	while true; do
 		case $1 in
 			-p) pidfile=$2
-				shift 2 ;;
+			    shift;;
 			 *) pathname=$1
-				[ "$2" ] && return 4
-				break ;;
+			    [ "$2" ] && return 4
+			    break ;;
 		esac
+		shift
 	done
 	
-	if [ $(basename $pathname) = "$pathname" ]; then
+	if [ ${pathname##*/} = "$pathname" ]; then
 		progname=$pathname
-		pathname=$(type -p $pathname)
+		pathname=$(command -v $pathname)
 	else
-		progname=$(basename $pathname)
+		progname=${pathname##*/}
 	fi
+	
+	# check for valid program
+	[ "$pathname" ]    || return 5
+	[ -x "$pathname" ] || return 5
 	
 	if [ "$pidfile" ]; then
 		pidlist=$(procpid -p $pidfile $progname)
@@ -165,8 +148,8 @@ status_daemon() {
 	if [ "$pidlist" ]; then
 		echo "$progname is running with Process ID(s): $pidlist"
 	else
-		if [ -e /var/run/$progname.pid ]; then
-			echo "$progname is not running but '/var/run/$progname.pid' exist."
+		if [ "$pidfile" ] && [ -e "$pidfile" ]; then
+			echo "$progname is not running but '$pidfile' exist."
 		else
 			echo "$progname is not running."
 		fi
@@ -179,35 +162,36 @@ procpid() {
 	while true; do
 		case $1 in
 			-p) pidfile=$2
-				shift 2 ;;
-			 *) if [ "$2" ]; then
-					return 4
-				else
-					pathname=$1
-				fi
-				break ;;
+			    shift;;
+			 *) pathname=$1
+			    [ "$2" ] && return 4
+			    break ;;
 		esac
+		shift
 	done
 	
-	if [ $(basename $pathname) = "$pathname" ]; then
+	if [ ${pathname##*/} = "$pathname" ]; then
 		progname=$pathname
-		pathname=$(type -p $pathname)
+		pathname=$(command -v $pathname)
 	else
-		progname=$(basename $pathname)
+		progname=${pathname##*/}
 	fi
+	
+	# check for valid program
+	[ "$pathname" ]    || return 5
+	[ -x "$pathname" ] || return 5
 	
 	if [ "$pidfile" ] && [ -e "$pidfile" ]; then
 		pidlist=$(head -n1 "$pidfile")
 	fi
 	
-	pidlist+=$( pidof "$progname")
+	pidlist="$pidlist $(pidof $progname)"
 		
 	for pid in $pidlist; do
-		#kill -0 $pid 2>/dev/null
-		#if [ "$?" = "0" ]; then
-			pids+="$pid "
-		#fi
+		echo $pids | grep -qw $pid && continue
+		pids="$pids $pid"
 	done
 	
 	echo $pids
 }
+

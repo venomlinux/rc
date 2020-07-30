@@ -4,12 +4,12 @@
 . /etc/rc.subr
 
 if [ "$PREVLEVEL" = "2" ]; then
-	if [ "${#DAEMONS[@]}" -gt 0 ]; then
-		for daemon in ${DAEMONS[@]}; do
-			R_DAEMONS=($daemon ${R_DAEMONS[@]})
+	if [ "$DAEMONS" ]; then
+		for daemon in $DAEMONS; do
+			R_DAEMONS="$daemon $R_DAEMONS"
 		done
-		for daemon in ${R_DAEMONS[@]}; do
-			if [ -f /etc/rc.d/$daemon ] && [ -x /etc/rc.d/$daemon ]; then
+		for daemon in $R_DAEMONS; do
+			if [ -x /etc/rc.d/$daemon ]; then
 				/etc/rc.d/$daemon stop
 			fi
 		done
@@ -19,11 +19,10 @@ fi
 if [ "$PREVLEVEL" != "N" ]; then
 	msg "Sending all processes the TERM signal..."
 	killall5 -15
-	sleep 5
+	sleep 1
 
 	msg "Sending all processes the KILL signal..."
 	killall5 -9
-	sleep 1
 
 	msg "Mounting virtual file systems..."
 	mountpoint -q /run  || mount /run

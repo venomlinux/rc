@@ -3,10 +3,10 @@ BINDIR	= /usr/bin
 EXTDIR	= ${DESTDIR}${ETCDIR}
 EBINDIR	= ${DESTDIR}${BINDIR}
 
-RCFILES	= rc.sysinit rc.local rc.single rc.multi rc.shutdown rc.subr
+RCFILES	= rc rc.local rc.single rc.multi rc.shutdown rc.subr
 
 create-dirs:
-	install -d -m 755 ${EXTDIR}/rc.d/ ${EXTDIR}/conf.d/
+	install -d -m 755 ${EXTDIR}/rc.d/
 
 create-bin-dir:
 	install -d -m 755 ${EBINDIR}
@@ -14,10 +14,9 @@ create-bin-dir:
 install: create-dirs create-bin-dir
 	install -m 754 ${RCFILES} ${EXTDIR}
 	install -m 644 inittab rc.conf ${EXTDIR}
-	install -m 755 rc modules ${EBINDIR}
+	install -m 755 modules-load ${EBINDIR}
 
 install-daemon: create-dirs
 	install -m 755 rc.d/* ${EXTDIR}/rc.d/
-	install -m 644 conf.d/* ${EXTDIR}/conf.d/
 
 install-all: install install-daemon

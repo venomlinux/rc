@@ -8,7 +8,8 @@
 . /etc/rc.subr
 
 NAME="template daemon"
-PROG=/usr/bin/foo
+PROGNAME=foo
+PROG=/usr/bin/$PROGNAME
 OPTS="--background"
 PIDFILE=/var/run/$PROGNAME.pid
 PID=$(pidof -o %PPID $PROG)
@@ -16,7 +17,7 @@ PID=$(pidof -o %PPID $PROG)
 case $1 in
 	start)
 		msg "Starting $NAME..."
-		if [ -z "$PID" ]; then
+		if [ ! "$PID" ]; then
 			$PROG $OPTS
 		else
 			stat_skip
@@ -24,7 +25,7 @@ case $1 in
 		;;
 	stop)
 		msg "Stopping $NAME..."
-		if [ ! -z "$PID" ]; then
+		if [ "$PID" ]; then
 			kill $PID &>/dev/null
 		else
 			stat_skip

@@ -7,16 +7,17 @@
 
 NAME="ACPI event daemon"
 PROG=/usr/sbin/acpid
-PIDFILE=/run/acpid.pid
+PIDFILE=/var/run/acpid.pid
+OPTS="-p $PIDFILE"
 
 case $1 in
 	start)
 		msg "Starting $NAME..."
-		start_daemon $PROG
+		start_daemon -p $PIDFILE $PROG $OPTS
 		;;
 	stop)
 		msg "Stopping $NAME..."
-		stop_daemon $PROG
+		stop_daemon -p $PIDFILE $PROG
 		;;
 	restart)
 		$0 stop
@@ -24,7 +25,7 @@ case $1 in
 		$0 start
 		;;
 	status)
-		status_daemon $PROG
+		status_daemon -p $PIDFILE $PROG
 		;;
 	*)
 		echo "usage: $0 [start|stop|restart|status]"

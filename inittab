@@ -11,7 +11,7 @@
 
 id:2:initdefault:
 
-rc::sysinit:/etc/rc.sysinit
+rc::sysinit:/etc/rc
 rs:S1:wait:/etc/rc.single
 rm:2:wait:/etc/rc.multi
 rh:06:wait:/etc/rc.shutdown

@@ -3,9 +3,9 @@
 . /etc/rc.conf
 . /etc/rc.subr
 
-if [ "${#DAEMONS[@]}" -gt 0 ]; then
-	for daemon in ${DAEMONS[@]}; do
-		if [ -f /etc/rc.d/$daemon ] && [ -x /etc/rc.d/$daemon ]; then
+if [ "$DAEMONS" ]; then
+	for daemon in $DAEMONS; do
+		if [ -x /etc/rc.d/$daemon ]; then
 			/etc/rc.d/$daemon start
 		fi
 	done
