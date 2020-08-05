@@ -122,7 +122,6 @@ if [ -f "/var/lib/random-seed" ]; then
 	rm -f /var/lib/random-seed
 fi
 
-# mount efivarfs if possible
 if [ -d /sys/firmware/efi/efivars ]; then
 	msg "Mounting efivarfs..."
 	mount -t efivarfs none /sys/firmware/efi/efivars
