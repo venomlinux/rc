@@ -77,7 +77,7 @@ if [ -f /etc/hostname ]; then
 else
 	hostname linux
 fi
-hostname "$HOSTNAME"
+
 msg "Cleanup system..."
 > /var/run/utmp
 if grep -q '^utmp:' /etc/group ; then
@@ -110,12 +110,8 @@ if [ "$TIMEZONE" ]; then
 	ln -snf /usr/share/zoneinfo/"$TIMEZONE" /etc/localtime
 fi
 
-case $HARDWARECLOCK in
-	UTC|utc) CLOCKOPT="--utc" ;;
-	local|localtime|LOCAL|LOCALTIME) CLOCKOPT="--localtime" ;;
-esac
 msg "Setting up system time..."
-hwclock --hctosys "$CLOCKOPT"
+hwclock --hctosys ${HARDWARECLOCK:+--$(echo $HARDWARECLOCK | tr A-Z a-z)}
 
 msg "Updating shared library links..."
 ldconfig
