@@ -32,7 +32,6 @@ sleep 1
 
 msg "Sending all processes the KILL signal..."
 killall5 -9
-sleep
 
 msg "Saving random seed..."
 dd if=/dev/urandom of=/var/lib/random-seed count=1 bs=512 2>/dev/null
@@ -47,11 +46,10 @@ msg "Bringing down the loopback interface..."
 ip link set lo down
 
 msg "Unmounting all other currently mounted file systems..."
-umount --all --detach-loop --read-only \
-	types notmpfs,nosysfs,nodevtmpfs,noproc,nodevpts >/dev/null
+umount -a -d -r -t notmpfs,nosysfs,nodevtmpfs,noproc,nodevpts
 
 msg "Remount root filesystem in read-only mode..."
-mount --options remount,ro /
+mount -o remount,ro /
 
 if [ "$RUNLEVEL" = 0 ]; then
 	msg "Writing a halt record to wtmp..."
@@ -71,4 +69,3 @@ else
 	msg "Rebooting..."
 	reboot -d -f -i
 fi
-
