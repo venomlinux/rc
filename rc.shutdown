@@ -37,7 +37,7 @@ msg "Saving random seed..."
 dd if=/dev/urandom of=/var/lib/random-seed count=1 bs=512 2>/dev/null
 
 msg "Saving system time to hardware clock..."
-hwclock --hctosys ${HARDWARECLOCK:+--$(echo $HARDWARECLOCK | tr A-Z a-z)}
+hwclock --systohc ${HARDWARECLOCK:+--$(echo $HARDWARECLOCK | tr A-Z a-z)}
 
 msg "Deactivating all swap files/partitions..."
 swapoff -a
