@@ -6,9 +6,9 @@
 . /etc/rc.conf
 . /etc/rc.subr
 
-[ -r /etc/lsb-release ] && . /etc/lsb-release
+[ -r /etc/os-release ] && . /etc/os-release
 
-welcome "${DISTRIB_DESCRIPTION:-'GNU/Linux'}"
+welcome "${PRETTY_NAME:-'GNU/Linux'}"
 
 msg "Mounting virtual file systems..."
 mountpoint -q /proc    || mount -t proc proc /proc -o nosuid,noexec,nodev
